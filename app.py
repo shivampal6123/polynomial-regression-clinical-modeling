@@ -115,13 +115,21 @@ with left_col:
 with right_col:
     st.subheader("🩺 Qualitative AI Clinical Guidance")
     st.info(f"**Learned Quadratic Equation:**\n`y = {theta_0:.2f} + ({theta_1:.2f})x + ({theta_2:.2f})x²`")
-
+    
     if st.button("Generate Clinical Assessment", use_container_width=True):
         if not groq_api_key:
             st.warning("Please enter your Groq API Key in the left sidebar to activate the AI Assistant.")
         else:
             try:
                 client = Groq(api_key=groq_api_key)
+                
+                # Automatically fetch an active chat model from your Groq account
+                available_models = [
+                    m.id for m in client.models.list().data 
+                    if "whisper" not in m.id.lower() and "guard" not in m.id.lower() and "tts" not in m.id.lower()
+                ]
+                active_model = available_models[0] if available_models else "llama-3.3-70b-versatile"
+
                 prompt = f"""
                 You are an AI Clinical Decision Support Assistant.
                 A polynomial regression pharmacodynamic model analyzed a patient drug dosage:
@@ -135,10 +143,10 @@ with right_col:
                 2. Safety bounds / toxicity risk or under-dosing risk.
                 3. Recommended clinical monitoring or adjustment.
                 """
-                with st.spinner("Analyzing clinical parameters..."):
+                with st.spinner(f"Analyzing with {active_model}..."):
                     chat_completion = client.chat.completions.create(
                         messages=[{"role": "user", "content": prompt}],
-                        model="llama-3.3-70b-versatile",
+                        model=active_model,
                     )
                     st.markdown(chat_completion.choices[0].message.content)
             except Exception as e:
